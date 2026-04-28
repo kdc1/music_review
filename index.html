@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AI 음원 검수/선곡 도구 - Static</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <aside class="sidebar">
+      <header class="brand">
+        <h1>AI 음원 검수/선곡 도구</h1>
+        <p>GitHub Pages 정적 버전</p>
+      </header>
+
+      <section class="panel">
+        <h2>폴더 마운트</h2>
+        <button id="mountAudio" class="primary" type="button">음원 폴더 마운트</button>
+        <button id="mountTxt" type="button">Suno txt 폴더 마운트</button>
+        <button id="mountExport" type="button">내보내기 폴더 마운트</button>
+        <div class="mount-state">
+          <div><strong>음원</strong><span id="audioMountLabel">미선택</span></div>
+          <div><strong>TXT</strong><span id="txtMountLabel">미선택</span></div>
+          <div><strong>내보내기</strong><span id="exportMountLabel">미선택</span></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>JSON 데이터</h2>
+        <div class="button-row">
+          <button id="downloadJson" type="button">JSON 내려받기</button>
+          <label class="file-button">JSON 업로드<input id="uploadJson" type="file" accept=".json,application/json"></label>
+        </div>
+        <p class="hint">분석 캐시, 검수 상태, 대기열이 JSON에 저장됩니다. 파일 핸들은 저장되지 않으므로 다시 접속하면 폴더는 다시 마운트해야 합니다.</p>
+      </section>
+
+      <section class="panel">
+        <h2>분석</h2>
+        <div class="button-row">
+          <button id="loadEssentia" type="button">Essentia 로드</button>
+          <button id="analyzeMissing" class="primary" type="button">미분석 분석</button>
+        </div>
+        <label class="inline-check"><input id="useTags" type="checkbox" checked> MusicNN 태그도 분석</label>
+        <div class="progress-box">
+          <div class="progress-line">
+            <strong id="analysisStatus">대기 중</strong>
+            <span id="analysisCount">0 / 0</span>
+          </div>
+          <progress id="analysisProgress" max="100" value="0"></progress>
+          <p id="analysisCurrent" class="hint">브라우저에서 wasm으로 BPM/Key를 분석합니다.</p>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>필터</h2>
+        <input id="searchInput" type="search" placeholder="제목, 파일명, 태그, 메모">
+        <select id="verdictFilter">
+          <option value="all">전체 판정</option>
+          <option value="unset">미정</option>
+          <option value="pass">통과</option>
+          <option value="hold">보류</option>
+          <option value="reject">탈락</option>
+        </select>
+        <div class="range-row">
+          <input id="minBpm" type="number" placeholder="최소 BPM">
+          <input id="maxBpm" type="number" placeholder="최대 BPM">
+        </div>
+        <input id="tagFilter" type="search" placeholder="Suno 태그 / 분석 태그">
+      </section>
+    </aside>
+
+    <main class="workspace">
+      <section class="topbar panel">
+        <div>
+          <p id="selectedFile" class="eyebrow">선택된 곡 없음</p>
+          <h2 id="selectedTitle">곡을 선택하세요</h2>
+          <p id="selectedMeta" class="muted">음원 폴더를 마운트하면 목록이 표시됩니다.</p>
+        </div>
+        <div class="sort-tools">
+          <select id="sortMode">
+            <option value="title">제목</option>
+            <option value="rating">별점</option>
+            <option value="bpm">BPM</option>
+            <option value="key">Key/Camelot</option>
+            <option value="modified">수정일</option>
+            <option value="similarity">유사도</option>
+          </select>
+          <button id="sortSimilar" type="button">현재 곡 기준 유사도</button>
+        </div>
+      </section>
+
+      <section class="main-grid">
+        <article class="panel track-panel">
+          <div class="panel-head">
+            <h2>트랙 목록</h2>
+            <span id="trackCount" class="muted">0곡</span>
+          </div>
+          <div id="trackList" class="track-list"></div>
+        </article>
+
+        <article class="panel detail-panel">
+          <audio id="audio" controls preload="metadata"></audio>
+          <div class="seek-row">
+            <span id="currentTime">0:00</span>
+            <input id="seekBar" type="range" min="0" max="1000" value="0">
+            <span id="duration">0:00</span>
+          </div>
+          <div class="button-row">
+            <button id="prevTrack" type="button">이전</button>
+            <button id="nextTrack" type="button">다음</button>
+            <label class="inline-check"><input id="autoNext" type="checkbox"> 자동 다음 곡</label>
+            <button id="addQueue" class="primary" type="button">대기열 추가</button>
+          </div>
+
+          <div class="review-box">
+            <div id="ratingButtons" class="rating">
+              <button data-rating="1">1</button>
+              <button data-rating="2">2</button>
+              <button data-rating="3">3</button>
+              <button data-rating="4">4</button>
+              <button data-rating="5">5</button>
+            </div>
+            <div id="verdictButtons" class="verdicts">
+              <button data-verdict="pass">통과</button>
+              <button data-verdict="hold">보류</button>
+              <button data-verdict="reject">탈락</button>
+              <button data-verdict="">미정</button>
+            </div>
+            <input id="userTags" type="text" placeholder="사용자 태그, 쉼표로 구분">
+            <textarea id="memo" rows="4" placeholder="검수 메모"></textarea>
+          </div>
+
+          <div class="tabs">
+            <button class="tab active" data-tab="lyrics">가사</button>
+            <button class="tab" data-tab="metadata">Suno 메타</button>
+            <button class="tab" data-tab="analysis">분석 정보</button>
+          </div>
+          <pre id="lyricsView" class="tab-view"></pre>
+          <div id="metadataView" class="tab-view hidden meta-grid"></div>
+          <div id="analysisView" class="tab-view hidden meta-grid"></div>
+        </article>
+
+        <article class="panel queue-panel">
+          <div class="panel-head">
+            <h2>선곡 대기열</h2>
+            <span id="queueCount" class="muted">0곡</span>
+          </div>
+          <div class="button-row">
+            <button id="playQueue" type="button">전체 재생</button>
+            <button id="clearQueue" type="button">비우기</button>
+          </div>
+          <div id="queueList" class="queue-list"></div>
+          <div class="export-box">
+            <div class="range-row">
+              <input id="copyPrefix" type="text" placeholder="접두어">
+              <input id="copyStart" type="number" value="1" min="1">
+              <input id="copyPad" type="number" value="3" min="1" max="6">
+            </div>
+            <button id="copyQueue" class="primary" type="button">마운트한 폴더로 대기열 복사</button>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <script>
+      window.APP_CONFIG = {
+        essentiaWasmPath: "./vendor/essentia-wasm.web.wasm",
+        modelPath: "./models/msd-musicnn-1/model.json",
+        metadataPath: "./models/msd-musicnn-1-metadata.json"
+      };
+    </script>
+    <script src="./vendor/tf.min.js"></script>
+    <script src="./vendor/essentia-wasm.web.js"></script>
+    <script src="./vendor/essentia.js-core.js"></script>
+    <script src="./vendor/essentia.js-extractor.js"></script>
+    <script src="./vendor/essentia.js-model.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
