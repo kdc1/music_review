@@ -1,0 +1,685 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>셀렉션 리뷰 JSON 갱신</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f8fa;
+      --panel: #ffffff;
+      --ink: #171a1f;
+      --muted: #667085;
+      --line: #d7dce3;
+      --accent: #1f7a5f;
+      --accent-dark: #155b47;
+      --danger: #b42318;
+      --warn: #9a6700;
+      --ok: #067647;
+      --focus: #80b9a7;
+      --shadow: 0 14px 34px rgba(20, 24, 31, 0.08);
+      font-family:
+        "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic",
+        system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--ink);
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      border: 1px solid transparent;
+      border-radius: 7px;
+      min-height: 40px;
+      padding: 0 14px;
+      background: var(--panel);
+      color: var(--ink);
+      cursor: pointer;
+    }
+
+    button:focus-visible,
+    input:focus-visible {
+      outline: 3px solid var(--focus);
+      outline-offset: 2px;
+    }
+
+    button[disabled] {
+      cursor: not-allowed;
+      opacity: 0.48;
+    }
+
+    .app {
+      width: min(1120px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 28px 0 36px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 30px;
+      padding: 0 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      background: #fff;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .controls {
+      padding: 16px;
+    }
+
+    .control-group + .control-group {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+    }
+
+    .label-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    label,
+    .label {
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .file-name {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      overflow-wrap: anywhere;
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .primary {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+
+    .primary:hover:not([disabled]) {
+      background: var(--accent-dark);
+      border-color: var(--accent-dark);
+    }
+
+    .secondary {
+      border-color: var(--line);
+    }
+
+    .danger {
+      color: var(--danger);
+      border-color: #f1b8b2;
+      background: #fff7f6;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      padding: 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .metric {
+      min-height: 74px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #fbfcfd;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 26px;
+      line-height: 1.15;
+      letter-spacing: 0;
+    }
+
+    .metric span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .progress-wrap {
+      padding: 0 16px 16px;
+    }
+
+    .progress-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 13px;
+      margin: 12px 0 7px;
+    }
+
+    progress {
+      width: 100%;
+      height: 10px;
+      appearance: none;
+    }
+
+    progress::-webkit-progress-bar {
+      background: #e6eaf0;
+      border-radius: 999px;
+    }
+
+    progress::-webkit-progress-value {
+      background: var(--accent);
+      border-radius: 999px;
+    }
+
+    progress::-moz-progress-bar {
+      background: var(--accent);
+      border-radius: 999px;
+    }
+
+    .log {
+      padding: 0 16px 16px;
+    }
+
+    .log-list {
+      display: grid;
+      gap: 8px;
+      max-height: 360px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .log-item {
+      border: 1px solid var(--line);
+      border-left-width: 4px;
+      border-radius: 7px;
+      padding: 10px 11px;
+      background: #fff;
+      font-size: 13px;
+      line-height: 1.45;
+      overflow-wrap: anywhere;
+    }
+
+    .log-item.ok {
+      border-left-color: var(--ok);
+    }
+
+    .log-item.warn {
+      border-left-color: var(--warn);
+    }
+
+    .log-item.error {
+      border-left-color: var(--danger);
+    }
+
+    .log-item.info {
+      border-left-color: #3b76c5;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    @media (max-width: 860px) {
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+
+      .summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 520px) {
+      .app {
+        width: min(100vw - 22px, 1120px);
+        padding-top: 18px;
+      }
+
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .summary {
+        grid-template-columns: 1fr;
+      }
+
+      .button-row button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <h1>셀렉션 리뷰 JSON 갱신</h1>
+      <div class="status-pill" id="statePill">대기</div>
+    </header>
+
+    <div class="workspace">
+      <section class="panel controls" aria-label="입력">
+        <div class="control-group">
+          <div class="label-row">
+            <label for="jsonInput">리뷰 JSON</label>
+            <button class="secondary" type="button" id="jsonButton">파일 선택</button>
+          </div>
+          <input class="hidden" id="jsonInput" type="file" accept="application/json,.json">
+          <div class="file-name" id="jsonName">선택 없음</div>
+        </div>
+
+        <div class="control-group">
+          <div class="label-row">
+            <span class="label">선택 음원 폴더</span>
+            <button class="secondary" type="button" id="folderButton">폴더 선택</button>
+          </div>
+          <input class="hidden" id="folderInput" type="file" webkitdirectory directory multiple>
+          <div class="file-name" id="folderName">선택 없음</div>
+        </div>
+
+        <div class="control-group">
+          <div class="button-row">
+            <button class="primary" type="button" id="runButton" disabled>갱신</button>
+            <button class="secondary" type="button" id="downloadButton" disabled>JSON 다운로드</button>
+            <button class="danger" type="button" id="resetButton">초기화</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" aria-label="결과">
+        <div class="summary">
+          <div class="metric">
+            <strong id="trackCount">0</strong>
+            <span>JSON 곡</span>
+          </div>
+          <div class="metric">
+            <strong id="selectedCount">0</strong>
+            <span>선택 UUID</span>
+          </div>
+          <div class="metric">
+            <strong id="passCount">0</strong>
+            <span>패스</span>
+          </div>
+          <div class="metric">
+            <strong id="rejectCount">0</strong>
+            <span>리젝</span>
+          </div>
+        </div>
+
+        <div class="progress-wrap">
+          <div class="progress-label">
+            <span id="progressText">0 / 0</span>
+            <span id="currentFile"></span>
+          </div>
+          <progress id="progress" value="0" max="1"></progress>
+        </div>
+
+        <div class="log">
+          <div class="log-list" id="logList"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    (() => {
+      const uuidPattern = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
+      const audioExtensions = new Set([
+        ".wav", ".mp3", ".flac", ".m4a", ".aac", ".ogg", ".opus", ".aiff", ".aif"
+      ]);
+
+      const state = {
+        jsonFile: null,
+        folderFiles: [],
+        outputBlobUrl: null,
+        outputFileName: ""
+      };
+
+      const el = {
+        jsonInput: document.getElementById("jsonInput"),
+        folderInput: document.getElementById("folderInput"),
+        jsonButton: document.getElementById("jsonButton"),
+        folderButton: document.getElementById("folderButton"),
+        runButton: document.getElementById("runButton"),
+        downloadButton: document.getElementById("downloadButton"),
+        resetButton: document.getElementById("resetButton"),
+        jsonName: document.getElementById("jsonName"),
+        folderName: document.getElementById("folderName"),
+        statePill: document.getElementById("statePill"),
+        trackCount: document.getElementById("trackCount"),
+        selectedCount: document.getElementById("selectedCount"),
+        passCount: document.getElementById("passCount"),
+        rejectCount: document.getElementById("rejectCount"),
+        progressText: document.getElementById("progressText"),
+        currentFile: document.getElementById("currentFile"),
+        progress: document.getElementById("progress"),
+        logList: document.getElementById("logList")
+      };
+
+      const setState = (text) => {
+        el.statePill.textContent = text;
+      };
+
+      const log = (message, type = "info") => {
+        const item = document.createElement("div");
+        item.className = `log-item ${type}`;
+        item.textContent = message;
+        el.logList.prepend(item);
+      };
+
+      const clearLog = () => {
+        el.logList.textContent = "";
+      };
+
+      const setMetric = (target, value) => {
+        target.textContent = String(value);
+      };
+
+      const updateReadyState = () => {
+        el.runButton.disabled = !(state.jsonFile && state.folderFiles.length);
+      };
+
+      const revokeOutput = () => {
+        if (state.outputBlobUrl) {
+          URL.revokeObjectURL(state.outputBlobUrl);
+        }
+        state.outputBlobUrl = null;
+        state.outputFileName = "";
+        el.downloadButton.disabled = true;
+      };
+
+      const fileExtension = (name) => {
+        const index = name.lastIndexOf(".");
+        return index === -1 ? "" : name.slice(index).toLowerCase();
+      };
+
+      const relativeName = (file) => file.webkitRelativePath || file.name;
+
+      const formatFolderLabel = (files) => {
+        if (!files.length) return "선택 없음";
+        const firstPath = relativeName(files[0]);
+        const root = firstPath.includes("/") ? firstPath.split("/")[0] : "선택 폴더";
+        return `${root} (${files.length}개 파일)`;
+      };
+
+      const uniqueIdsFromText = (text) => {
+        return [...new Set([...text.matchAll(uuidPattern)].map((match) => match[0].toLowerCase()))];
+      };
+
+      const extractUuidFromBinaryFile = async (file) => {
+        const nameIds = uniqueIdsFromText(file.name);
+        if (nameIds.length === 1) return nameIds;
+
+        const chunkSize = 1024 * 1024;
+        const decoder = new TextDecoder("iso-8859-1");
+        const ids = new Set(nameIds);
+        let tail = "";
+
+        for (let offset = 0; offset < file.size; offset += chunkSize) {
+          const chunk = file.slice(offset, Math.min(file.size, offset + chunkSize));
+          const text = decoder.decode(await chunk.arrayBuffer(), { stream: true });
+          const merged = tail + text;
+          for (const id of uniqueIdsFromText(merged)) {
+            ids.add(id);
+          }
+          tail = merged.slice(-80);
+        }
+
+        const finalText = tail + decoder.decode();
+        for (const id of uniqueIdsFromText(finalText)) {
+          ids.add(id);
+        }
+
+        return [...ids];
+      };
+
+      const readSelectedIds = async (files) => {
+        const audioFiles = files.filter((file) => audioExtensions.has(fileExtension(file.name)));
+        if (!audioFiles.length) {
+          throw new Error("선택한 폴더에서 음원 파일을 찾지 못했습니다.");
+        }
+
+        const selected = new Map();
+        const errors = [];
+        el.progress.max = audioFiles.length;
+        el.progress.value = 0;
+        el.progressText.textContent = `0 / ${audioFiles.length}`;
+
+        for (let index = 0; index < audioFiles.length; index += 1) {
+          const file = audioFiles[index];
+          const displayName = relativeName(file);
+          el.currentFile.textContent = file.name;
+
+          const ids = await extractUuidFromBinaryFile(file);
+          if (ids.length !== 1) {
+            errors.push(`${displayName}: UUID ${ids.length}개`);
+          } else if (selected.has(ids[0])) {
+            errors.push(`${displayName}: 중복 UUID (${selected.get(ids[0])})`);
+          } else {
+            selected.set(ids[0], displayName);
+          }
+
+          el.progress.value = index + 1;
+          el.progressText.textContent = `${index + 1} / ${audioFiles.length}`;
+          await new Promise((resolve) => setTimeout(resolve, 0));
+        }
+
+        el.currentFile.textContent = "";
+        if (errors.length) {
+          throw new Error(errors.slice(0, 12).join("\n"));
+        }
+
+        return selected;
+      };
+
+      const trackSunoId = (track) => {
+        const candidates = [
+          track && track.sunoId,
+          track && track.metadata && track.metadata.suno && track.metadata.suno.id,
+          track && track.fileName,
+          track && track.relPath
+        ];
+
+        for (const candidate of candidates) {
+          if (!candidate) continue;
+          const ids = uniqueIdsFromText(String(candidate));
+          if (ids.length) return ids[0];
+        }
+        return "";
+      };
+
+      const buildUpdatedJson = (data, selectedIds) => {
+        if (!Array.isArray(data.trackSnapshots)) {
+          throw new Error("trackSnapshots 배열을 찾지 못했습니다.");
+        }
+
+        const tracks = data.trackSnapshots;
+        const trackSunoIds = new Set(tracks.map(trackSunoId).filter(Boolean));
+        const unmatched = [...selectedIds.keys()].filter((id) => !trackSunoIds.has(id));
+        if (unmatched.length) {
+          throw new Error(`JSON에 없는 선택 UUID: ${unmatched.slice(0, 20).join(", ")}`);
+        }
+
+        const now = new Date().toISOString();
+        const reviews = {};
+        let pass = 0;
+        let reject = 0;
+        let missingReviewId = 0;
+
+        for (const track of tracks) {
+          if (!track.id) {
+            missingReviewId += 1;
+            continue;
+          }
+
+          const verdict = selectedIds.has(trackSunoId(track)) ? "pass" : "reject";
+          reviews[track.id] = { verdict, updatedAt: now };
+
+          if (verdict === "pass") pass += 1;
+          else reject += 1;
+        }
+
+        if (missingReviewId) {
+          throw new Error(`review id가 없는 곡 ${missingReviewId}개가 있습니다.`);
+        }
+
+        return {
+          data: { ...data, exportedAt: now, reviews },
+          counts: { tracks: tracks.length, selected: selectedIds.size, pass, reject }
+        };
+      };
+
+      const makeDownload = (jsonFile, data) => {
+        revokeOutput();
+        const stem = jsonFile.name.replace(/\.json$/i, "");
+        state.outputFileName = `${stem}.sel-updated.json`;
+        state.outputBlobUrl = URL.createObjectURL(
+          new Blob([JSON.stringify(data, null, 2), "\n"], { type: "application/json;charset=utf-8" })
+        );
+        el.downloadButton.disabled = false;
+      };
+
+      const run = async () => {
+        try {
+          revokeOutput();
+          clearLog();
+          setState("처리 중");
+          el.runButton.disabled = true;
+
+          const jsonText = await state.jsonFile.text();
+          const data = JSON.parse(jsonText);
+          const selectedIds = await readSelectedIds(state.folderFiles);
+          const result = buildUpdatedJson(data, selectedIds);
+
+          makeDownload(state.jsonFile, result.data);
+
+          setMetric(el.trackCount, result.counts.tracks);
+          setMetric(el.selectedCount, result.counts.selected);
+          setMetric(el.passCount, result.counts.pass);
+          setMetric(el.rejectCount, result.counts.reject);
+
+          setState("완료");
+          log(`갱신 완료: 패스 ${result.counts.pass}곡, 리젝 ${result.counts.reject}곡`, "ok");
+        } catch (error) {
+          setState("오류");
+          log(error.message || String(error), "error");
+        } finally {
+          updateReadyState();
+        }
+      };
+
+      const download = () => {
+        if (!state.outputBlobUrl) return;
+        const link = document.createElement("a");
+        link.href = state.outputBlobUrl;
+        link.download = state.outputFileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      };
+
+      const reset = () => {
+        revokeOutput();
+        state.jsonFile = null;
+        state.folderFiles = [];
+        el.jsonInput.value = "";
+        el.folderInput.value = "";
+        el.jsonName.textContent = "선택 없음";
+        el.folderName.textContent = "선택 없음";
+        setMetric(el.trackCount, 0);
+        setMetric(el.selectedCount, 0);
+        setMetric(el.passCount, 0);
+        setMetric(el.rejectCount, 0);
+        el.progress.value = 0;
+        el.progress.max = 1;
+        el.progressText.textContent = "0 / 0";
+        el.currentFile.textContent = "";
+        clearLog();
+        setState("대기");
+        updateReadyState();
+      };
+
+      el.jsonButton.addEventListener("click", () => el.jsonInput.click());
+      el.folderButton.addEventListener("click", () => el.folderInput.click());
+      el.runButton.addEventListener("click", run);
+      el.downloadButton.addEventListener("click", download);
+      el.resetButton.addEventListener("click", reset);
+
+      el.jsonInput.addEventListener("change", () => {
+        revokeOutput();
+        state.jsonFile = el.jsonInput.files[0] || null;
+        el.jsonName.textContent = state.jsonFile ? state.jsonFile.name : "선택 없음";
+        clearLog();
+        setState("대기");
+        updateReadyState();
+      });
+
+      el.folderInput.addEventListener("change", () => {
+        revokeOutput();
+        state.folderFiles = [...el.folderInput.files];
+        el.folderName.textContent = formatFolderLabel(state.folderFiles);
+        clearLog();
+        setState("대기");
+        updateReadyState();
+      });
+    })();
+  </script>
+</body>
+</html>
